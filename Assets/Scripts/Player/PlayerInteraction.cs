@@ -22,8 +22,8 @@ public class PlayerInteraction : MonoBehaviour
     [SerializeField] private IFEAManager ifeaManager;
     // 같은 대상을 바라보는 동안 툴팁을 매 프레임 다시 그리지 않도록 보관한다.
     private FinishTarget currentTarget;
-    // 화면 선택/결과 표시 중에 Player 입력을 막기 위한 상태이다.
-    private bool canInteract;
+    // IFEAManager가 전달한 현재 화면 흐름 상태이다.
+    private IFEAState currentState = IFEAState.RoomSelection;
     // 위아래 회전각을 제한하여 Camera가 뒤집히지 않게 한다.
     private float pitch;
 
@@ -35,21 +35,24 @@ public class PlayerInteraction : MonoBehaviour
         {
             Debug.LogError("Connect Camera and IFEAManager in PlayerInteraction.", this);
         }
-        SetInteractionEnabled(false);
+        SetState(IFEAState.RoomSelection);
     }
 
     // 키보드/마우스 입력만 매 프레임 검사한다. 분석과 UI 전체 갱신은 Manager가 담당한다.
     private void Update()
     {
-        // 방 선택 전 또는 결과 화면에서는 3D 조작을 하지 않도록 중단한다.
-        if (!canInteract || playerCamera == null || ifeaManager == null)
-        {
-            return;
-        }
-        // Escape는 UI를 누를 수 있도록 커서 잠금을 전환한다.
+        // 전체 화면 흐름은 IFEAManager가 결정하므로 연결되지 않은 상태에서는 입력을 처리하지 않는다.
+        if (ifeaManager == null) { return; }
+        // 방 화면에서는 견적·에너지 메뉴를 열고, 열린 메뉴에서는 다시 방으로 돌아간다.
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            SetCursorLocked(Cursor.lockState != CursorLockMode.Locked);
+            ifeaManager.HandleEscapeInput();
+            return;
+        }
+        // 방 선택 전 또는 결과 화면에서는 3D 조작을 하지 않도록 중단한다.
+        if (currentState != IFEAState.RoomInteraction || playerCamera == null)
+        {
+            return;
         }
         // UI 버튼 위에서 이동/회전/마감 클릭이 실행되지 않도록 조작을 막는다.
         if (IsPointerOverUI())
@@ -166,7 +169,7 @@ public class PlayerInteraction : MonoBehaviour
         // 마감 대상이 없으면 아무 제품도 변경하지 않는다.
         if (currentTarget == null) { return; }
         // 개별 표면이 아니라 같은 종류 전체를 변경해야 하므로 IFEAManager에 범위 처리를 맡긴다.
-        ifeaManager.ChangeFinishGroup(currentTarget, false);
+        ifeaManager.SelectNextFinish(currentTarget);
     }
     // 탐지한 부위와 같은 종류 전체의 기본 재질 복원을 Manager에 요청한다.
     private void ResetFinish()
@@ -174,14 +177,14 @@ public class PlayerInteraction : MonoBehaviour
         // 대상이 없으면 초기화할 부위가 없으므로 중단한다.
         if (currentTarget == null) { return; }
         // 같은 종류의 복원과 재계산이 한 번에 이루어지도록 IFEAManager를 호출한다.
-        ifeaManager.ChangeFinishGroup(currentTarget, true);
+        ifeaManager.ResetFinishSelection(currentTarget);
     }
     // Room 선택/결과 전환 시 3D 조작 허용 상태와 커서 상태를 함께 바꾼다.
-    public void SetInteractionEnabled(bool value)
+    public void SetState(IFEAState state)
     {
-        canInteract = value;
+        currentState = state;
         ClearTarget();
-        SetCursorLocked(value);
+        SetCursorLocked(state == IFEAState.RoomInteraction);
     }
     // 다른 방으로 이동할 때 이전 방의 상하 시점 각도를 제거한다.
     public void ResetViewRotation()

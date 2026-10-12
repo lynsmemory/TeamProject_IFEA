@@ -2,10 +2,6 @@
 using UnityEngine;
 
 // 마감 부위 한 곳의 제품 선택 상태와 재질 변경을 담당한다.
-// 벽·바닥·천장 또는 창 가림 부위 하나의 제품 선택 상태를 관리한다.
-// 벽·바닥·천장은 Renderer의 지정 재질 칸을 교체하고,
-// 블라인드·커튼은 Visual Anchor 아래에 제품 프리팹을 생성한다.
-// 방 전체 변경 범위는 IFEAManager가, 견적·에너지 계산은 AnalysisManager가 담당한다.
 public class FinishTarget : MonoBehaviour
 {
     // 이 대상에 적용할 제품의 종류를 구분한다.
@@ -50,10 +46,7 @@ public class FinishTarget : MonoBehaviour
         if (IsWindowCovering())
         {
             // 생성 위치가 없으면 창에 모델을 배치할 수 없어 연결 안내를 남긴다.
-            if (visualAnchor == null) 
-            { 
-                statusMessage = name + ": Connect Visual Anchor.";
-            }
+            if (visualAnchor == null) { statusMessage = name + ": Connect Visual Anchor."; }
             return;
         }
         // Renderer가 없으면 재질을 읽을 수 없어 연결 안내를 남기고 중단한다.
@@ -228,7 +221,7 @@ public class FinishTarget : MonoBehaviour
     public FinishData GetComparisonFinish()
     {
         // Inspector에 기본 제품이 연결되어 있고 대상 종류와 맞으면 그 제품을 비교 기준으로 사용한다.
-        if (defaultFinish != null && MatchesFinishType(defaultFinish) && defaultFinish.GetThermalResistance() > 0f)
+        if (defaultFinish != null && MatchesFinishType(defaultFinish) && defaultFinish.HasThermalData())
         {
             return defaultFinish;
         }
@@ -239,7 +232,7 @@ public class FinishTarget : MonoBehaviour
             foreach (FinishData finish in finishList)
             {
                 // 종류가 다르거나 R값이 없는 제품은 열성능 비교 기준으로 사용할 수 없어 건너뛴다.
-                if (finish == null || !MatchesFinishType(finish) || finish.GetThermalResistance() <= 0f) { continue; }
+                if (finish == null || !MatchesFinishType(finish) || !finish.HasThermalData()) { continue; }
                 return finish;
             }
         }
@@ -247,30 +240,18 @@ public class FinishTarget : MonoBehaviour
         return null;
     }
     // PlayerInteraction이 화면에 보이는 비교 제품의 설명을 UI에 전달하도록 반환한다.
-    public FinishData GetDefaultFinish() 
-    {
-        return GetComparisonFinish();
-    }
+    public FinishData GetDefaultFinish() { return GetComparisonFinish(); }
     // AnalysisManager가 적용 면적 또는 수량을 사용하도록 반환한다.
-    public float GetArea() 
-    {
-        return area;
-    }
+    public float GetArea() { return area; }
     // AnalysisManager가 내부 칸막이를 빼고 실제 경계 부분만 열손실에 반영하도록 면적을 반환한다.
     public float GetThermalArea()
     {
         // 이전 데이터나 창 대상에는 별도 열면적이 없을 수 있어 기존 면적으로 계산을 이어간다.
-        if (thermalArea < 0f) 
-        {
-            return area;
-        }
+        if (thermalArea < 0f) { return area; }
         return thermalArea;
     }
     // AnalysisManager가 적용 부위를 구분하도록 반환한다.
-    public FinishType GetFinishType() 
-    { 
-        return type;
-    }
+    public FinishType GetFinishType() { return type; }
     // AnalysisManager가 창 가림 카테고리와 기존 단일 장치 대상을 같은 창 분석 흐름으로 구분하도록 전달한다.
     public bool IsWindowCovering()
     {
@@ -280,10 +261,7 @@ public class FinishTarget : MonoBehaviour
     public bool MatchesFinishType(FinishData finish)
     {
         // 제품이 없으면 종류를 검사할 수 없어 적용 불가로 처리한다.
-        if (finish == null) 
-        {
-            return false;
-        }
+        if (finish == null) { return false; }
         // 같은 창에 순환 적용할 두 제품 종류만 통합 목록에 허용한다.
         if (type == FinishType.WindowCovering)
         {

@@ -13,6 +13,14 @@ public enum FinishType
     WindowCovering = 6
 }
 
+// 열저항 원본값을 유지하면서 계산 가능 여부를 명확하게 구분한다.
+public enum ThermalDataState
+{
+    Missing,
+    Invalid,
+    Usable
+}
+
 // 제품 설정을 여러 대상에서 공유한다. 실행 중 선택 상태는 FinishTarget에 보관한다.
 [CreateAssetMenu(fileName = "NewFinishData", menuName = "IFEA/Data/Finish")]
 public class FinishData : ScriptableObject
@@ -54,6 +62,16 @@ public class FinishData : ScriptableObject
     public float GetThermalResistance() { return thermalResistance; }
     // 제품 가격만 계산하므로 단가의 입력 여부를 검사한다. 보관한 시공비는 유효성 조건에 넣지 않는다.
     public bool HasPriceData() { return unitPrice >= 0f; }
-    // 미입력 열저항을 개선값으로 계산하지 않도록 유효 여부를 반환한다.
-    public bool HasThermalData() { return thermalResistance >= 0f; }
+    // 열저항의 미입력, 잘못된 값, 계산 가능한 값을 한 곳에서 판정한다.
+    public ThermalDataState GetThermalDataState()
+    {
+        if (thermalResistance < 0f) { return ThermalDataState.Missing; }
+        if (thermalResistance == 0f || float.IsNaN(thermalResistance) || float.IsInfinity(thermalResistance))
+        {
+            return ThermalDataState.Invalid;
+        }
+        return ThermalDataState.Usable;
+    }
+    // 면적/R 계산에 사용할 수 있는 양수 열저항인지 반환한다.
+    public bool HasThermalData() { return GetThermalDataState() == ThermalDataState.Usable; }
 }

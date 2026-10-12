@@ -1,11 +1,51 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// AnalysisManager의 계산 결과를 UIManager에 직접 연결하지 않고 전달하기 위한 스냅샷이다.
+public sealed class AnalysisResult
+{
+    public string currencyLabel;
+    public float totalCost;
+    public float baselineAnnualEnergyUsage;
+    public float annualEnergyUsage;
+    public float baselineAnnualEnergyCost;
+    public float annualEnergyCost;
+    public float annualSaving;
+    public float paybackPeriod;
+    public bool estimateComplete;
+    public bool analysisComplete;
+    public bool paybackAvailable;
+    public string statusMessage;
+    public string estimateDetails;
+    public string wallSelection;
+    public string floorSelection;
+    public string ceilingSelection;
+    public string windowCoveringSelection;
+    public bool hasWallSelection;
+    public bool hasFloorSelection;
+    public bool hasCeilingSelection;
+    public bool hasWindowCoveringSelection;
+
+    public string GetSelectionLabel(FinishType type)
+    {
+        if (type == FinishType.Wall) { return wallSelection; }
+        if (type == FinishType.Floor) { return floorSelection; }
+        if (type == FinishType.Ceiling) { return ceilingSelection; }
+        return windowCoveringSelection;
+    }
+
+    public bool HasSelection(FinishType type)
+    {
+        if (type == FinishType.Wall) { return hasWallSelection; }
+        if (type == FinishType.Floor) { return hasFloorSelection; }
+        if (type == FinishType.Ceiling) { return hasCeilingSelection; }
+        return hasWindowCoveringSelection;
+    }
+}
+
 // 현재 선택에서 제품 견적과 연간 냉난방 에너지 비교 결과를 계산한다.
 public class AnalysisManager : MonoBehaviour
 {
-    // 현재 방의 면적 자료를 읽기 위해 RoomController 클래스를 참조한다.
-    [SerializeField] private RoomController roomController;
     // 냉난방 시간, 효율, 에너지 단가를 한 곳에서 읽기 위해 EnergyStandardData 클래스를 참조한다.
     [SerializeField] private EnergyStandardData energyStandard;
     // 이번 계산에서 사용하는 방의 면적과 이름을 보관한다.
@@ -44,27 +84,19 @@ public class AnalysisManager : MonoBehaviour
     private FinishTarget[] currentTargets;
 
     // IFEAManager 클래스가 방 선택이나 제품 변경 후 모든 결과를 다시 계산할 때 호출한다.
-    public void CalculateAll(GameObject room)
+    public void CalculateAll(RoomData selectedRoomData, FinishTarget[] targets)
     {
         ClearResults();
         // 선택된 방이 없으면 이전 방의 결과를 남기지 않고 안내만 표시한다.
-        if (room == null)
+        if (selectedRoomData == null || targets == null)
         {
             statusMessage = "Please select a room first.";
             return;
         }
-        // 선택 제품과 실제 적용 면적을 읽기 위해 현재 방의 FinishTarget 클래스들을 가져온다.
-        FinishTarget[] targets = room.GetComponentsInChildren<FinishTarget>();
         currentTargets = targets;
         CalculateEstimate(targets);
-        // 다른 방의 RoomData를 잘못 읽지 않도록 RoomController 연결과 현재 방을 확인한다.
-        if (roomController == null || roomController.GetCurrentRoom() != room)
-        {
-            AddMessage("Check the RoomController reference in AnalysisManager.");
-            return;
-        }
-        // 욕실, 화장실, 발코니 제외 면적이 저장된 현재 RoomData를 가져온다.
-        roomData = roomController.GetCurrentRoomData();
+        // IFEAManager가 현재 방과 함께 전달한 면적 데이터를 사용한다.
+        roomData = selectedRoomData;
         // 면적이나 냉난방 조건이 없으면 임의의 결과를 만들지 않고 계산을 중단한다.
         if (roomData == null || !roomData.HasAreaData() || energyStandard == null || !energyStandard.HasEnvironmentData())
         {
@@ -278,12 +310,12 @@ public class AnalysisManager : MonoBehaviour
         }
     }
 
-    // 제품 종류와 양수 R값을 함께 검사하여 잘못된 제품으로 나누는 계산을 막는다.
+    // 제품 종류와 FinishData가 판정한 열 데이터 상태를 함께 검사한다.
     private bool HasUsableThermalData(FinishTarget target, FinishData finish)
     {
         // FinishTarget 클래스의 대상 종류와 FinishData 클래스의 제품 종류가 맞아야 해당 부위에 사용할 수 있다.
         return target != null && finish != null && target.MatchesFinishType(finish)
-            && finish.HasThermalData() && finish.GetThermalResistance() > 0f;
+            && finish.HasThermalData();
     }
 
     // 제품 열손실 계수에 난방과 냉방 배율을 각각 적용한 뒤 연간 에너지로 합산한다.
@@ -394,6 +426,35 @@ public class AnalysisManager : MonoBehaviour
     public string GetStatusMessage() { return statusMessage; }
     // UIManager 클래스가 항목별 제품 비용을 표시하도록 계산된 문자열을 반환한다.
     public string GetEstimateDetails() { return estimateDetails; }
+
+    // IFEAManager가 UIManager에 전달할 현재 계산 결과를 한 번에 생성한다.
+    public AnalysisResult GetResult()
+    {
+        return new AnalysisResult
+        {
+            currencyLabel = GetCurrencyLabel(),
+            totalCost = totalCost,
+            baselineAnnualEnergyUsage = baselineAnnualEnergyUsage,
+            annualEnergyUsage = annualEnergyUsage,
+            baselineAnnualEnergyCost = baselineAnnualEnergyCost,
+            annualEnergyCost = annualEnergyCost,
+            annualSaving = annualSaving,
+            paybackPeriod = paybackPeriod,
+            estimateComplete = estimateComplete,
+            analysisComplete = analysisComplete,
+            paybackAvailable = paybackAvailable,
+            statusMessage = statusMessage,
+            estimateDetails = estimateDetails,
+            wallSelection = GetSelectionLabel(FinishType.Wall),
+            floorSelection = GetSelectionLabel(FinishType.Floor),
+            ceilingSelection = GetSelectionLabel(FinishType.Ceiling),
+            windowCoveringSelection = GetSelectionLabel(FinishType.WindowCovering),
+            hasWallSelection = HasSelection(FinishType.Wall),
+            hasFloorSelection = HasSelection(FinishType.Floor),
+            hasCeilingSelection = HasSelection(FinishType.Ceiling),
+            hasWindowCoveringSelection = HasSelection(FinishType.WindowCovering)
+        };
+    }
 
     // UIManager 클래스가 카드에 실제 선택 제품 이름을 표시하도록 해당 분류의 이름을 반환한다.
     public string GetSelectionLabel(FinishType type)

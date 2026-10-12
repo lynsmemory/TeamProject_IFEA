@@ -1,5 +1,14 @@
 ﻿using UnityEngine;
 
+// 전체 화면 흐름과 3D 조작 가능 상태를 같은 값으로 관리한다.
+public enum IFEAState
+{
+    RoomSelection,
+    RoomInteraction,
+    EstimateAnalysis,
+    Result
+}
+
 // UI, 방, Player, 계산 클래스의 실행 순서를 조정한다. 기능 자체는 각 담당 클래스에 맡긴다.
 public class IFEAManager : MonoBehaviour
 {
@@ -11,15 +20,17 @@ public class IFEAManager : MonoBehaviour
     [SerializeField] private AnalysisManager analysisManager;
     // 계산 결과를 표시하고 UI-01~06을 전환하도록 요청하기 위해 참조한다.
     [SerializeField] private UIManager uiManager;
+    // ESC 입력과 화면 전환이 현재 흐름에 맞게 동작하도록 상태를 보관한다.
+    private IFEAState currentState = IFEAState.RoomSelection;
 
     // 모든 Awake 뒤 최초 화면을 준비하여 Room 선택 전의 3D 입력을 막는다.
     private void Start()
     {
         // 필요한 클래스가 빠졌으면 연결 안내 후 시작을 중단한다.
         if (!HasRequiredReferences()) { return; }
-        playerInteraction.SetInteractionEnabled(false);
-        uiManager.ShowUI01();
-        analysisManager.CalculateAll(null);
+        SetState(IFEAState.RoomSelection);
+        uiManager.ShowUIRoomSelect();
+        analysisManager.CalculateAll(null, null);
         RefreshUI();
         // 처음 방을 고르는 것은 정상 시작 흐름이므로 빈 분석의 선택 안내를 화면 오류처럼 남기지 않는다.
         uiManager.ShowMessage("");
@@ -29,20 +40,22 @@ public class IFEAManager : MonoBehaviour
     {
         // 연결이 빠진 클래스를 호출하지 않도록 검사한다.
         if (!HasRequiredReferences()) { return; }
-        playerInteraction.SetInteractionEnabled(false);
+        SetState(IFEAState.RoomSelection);
         // Prefab 생성과 Player 배치는 RoomController의 책임이므로 해당 클래스에 요청한다.
         roomController.LoadRoom(roomType);
         // 생성에 실패하면 빈 방을 분석하지 않고 문제를 안내한다.
         if (roomController.GetStatusMessage() != "" || roomController.GetCurrentRoom() == null)
         {
-            uiManager.ShowUI01();
+            uiManager.ShowUIRoomSelect();
             ShowMessage(roomController.GetStatusMessage());
             return;
         }
+        // Player 시점 초기화도 전체 흐름을 아는 IFEAManager가 요청한다.
+        playerInteraction.ResetViewRotation();
         // 화면 표시 상태를 바꾸는 기능은 UIManager에 요청한다.
         uiManager.ShowRoomUI();
         OnFinishChanged();
-        playerInteraction.SetInteractionEnabled(true);
+        SetState(IFEAState.RoomInteraction);
     }
     // UI Button에서 enum 인수를 고르지 않고 원룸을 선택하도록 제공한다.
     public void StartOneRoom() { StartRoom(RoomType.OneRoom); }
@@ -50,8 +63,18 @@ public class IFEAManager : MonoBehaviour
     public void StartTwoRoom() { StartRoom(RoomType.TwoRoom); }
     // 쓰리룸 버튼이 같은 방 생성 흐름을 사용하도록 제공한다.
     public void StartThreeRoom() { StartRoom(RoomType.ThreeRoom); }
-    // 클릭한 부위와 같은 종류의 모든 마감을 변경한다. 벽, 바닥, 천장의 목록은 종류별로 동일하게 연결한다.
-    public void ChangeFinishGroup(FinishTarget clickedTarget, bool reset)
+    // 클릭한 부위에 다음 제품을 적용하도록 요청한다.
+    public void SelectNextFinish(FinishTarget clickedTarget)
+    {
+        ChangeFinish(clickedTarget, false);
+    }
+    // 클릭한 부위를 기본 제품 상태로 복원하도록 요청한다.
+    public void ResetFinishSelection(FinishTarget clickedTarget)
+    {
+        ChangeFinish(clickedTarget, true);
+    }
+    // 일반 마감은 같은 종류 전체, 창 가림은 클릭한 대상 하나에 변경 동작을 적용한다.
+    private void ChangeFinish(FinishTarget clickedTarget, bool reset)
     {
         // 방이나 클릭 대상이 없으면 변경할 마감 목록을 읽을 수 없어 중단한다.
         if (!HasRequiredReferences() || clickedTarget == null || roomController.GetCurrentRoom() == null) { return; }
@@ -71,7 +94,7 @@ public class IFEAManager : MonoBehaviour
             return;
         }
         // 방 전체의 동일 종류 마감을 변경하기 위해 RoomController가 보관한 모델에서 FinishTarget을 가져온다.
-        FinishTarget[] targets = roomController.GetCurrentRoom().GetComponentsInChildren<FinishTarget>();
+        FinishTarget[] targets = roomController.GetCurrentFinishTargets();
         // 하나라도 변경에 실패하면 성공 안내 대신 연결 오류를 표시하기 위한 문자열이다.
         string errors = "";
         // 각 표면의 실제 재질 교체는 FinishTarget의 책임이므로 해당 클래스에 요청한다.
@@ -98,7 +121,7 @@ public class IFEAManager : MonoBehaviour
         // 연결이 없으면 계산과 표시를 호출하지 않는다.
         if (!HasRequiredReferences()) { return; }
         // 전체 계산을 중복 구현하지 않고 AnalysisManager에 요청한다.
-        analysisManager.CalculateAll(roomController.GetCurrentRoom());
+        analysisManager.CalculateAll(roomController.GetCurrentRoomData(), roomController.GetCurrentFinishTargets());
         RefreshUI();
     }
     // 방을 제거하고 추가 선택과 계산값을 초기 상태로 돌려 Room 선택 화면을 표시한다.
@@ -106,10 +129,10 @@ public class IFEAManager : MonoBehaviour
     {
         // 연결이 없으면 초기화를 안전하게 수행할 수 없어 중단한다.
         if (!HasRequiredReferences()) { return; }
-        playerInteraction.SetInteractionEnabled(false);
+        SetState(IFEAState.RoomSelection);
         roomController.ClearRoom();
-        analysisManager.CalculateAll(null);
-        uiManager.ShowUI01();
+        analysisManager.CalculateAll(null, null);
+        uiManager.ShowUIRoomSelect();
         RefreshUI();
         uiManager.ShowMessage("");
     }
@@ -131,10 +154,10 @@ public class IFEAManager : MonoBehaviour
             return;
         }
         OnFinishChanged();
-        playerInteraction.SetInteractionEnabled(false);
+        SetState(IFEAState.Result);
         // 화면 내용 구성은 UIManager의 책임이므로 방 이름을 전달한다.
         uiManager.UpdateResult(roomController.GetCurrentRoomData().roomName);
-        uiManager.ShowUI06();
+        uiManager.ShowUIResult();
     }
     // UI-06의 돌아가기 버튼에서 기존 Room 조작을 다시 시작한다.
     public void ReturnToRoom()
@@ -143,7 +166,7 @@ public class IFEAManager : MonoBehaviour
         if (!HasRequiredReferences() || roomController.GetCurrentRoom() == null) { return; }
         uiManager.ShowRoomUI();
         RefreshUI();
-        playerInteraction.SetInteractionEnabled(true);
+        SetState(IFEAState.RoomInteraction);
     }
     // 견적/분석 버튼에서 전체 화면을 열고 마우스로 UI를 누를 수 있도록 이동 입력을 막는다.
     public void ShowEstimateAnalysis()
@@ -156,8 +179,20 @@ public class IFEAManager : MonoBehaviour
         }
         // 최신 선택을 계산에 반영하고 UI에 전달하도록 전체 갱신 함수를 호출한다.
         OnFinishChanged();
-        playerInteraction.SetInteractionEnabled(false);
-        uiManager.ShowUI04_05();
+        SetState(IFEAState.EstimateAnalysis);
+        uiManager.ShowUIEstimateAndAnalysis();
+    }
+    // 현재 화면 상태에 따라 ESC 입력으로 메뉴를 열거나 방 화면으로 돌아간다.
+    public void HandleEscapeInput()
+    {
+        if (currentState == IFEAState.RoomInteraction)
+        {
+            ShowEstimateAnalysis();
+        }
+        else if (currentState == IFEAState.EstimateAnalysis || currentState == IFEAState.Result)
+        {
+            ReturnToRoom();
+        }
     }
     // target의 제품을 UIManager에 전달한다. 대상이 없으면 툴팁을 숨긴다.
     public void ShowTarget(FinishTarget target)
@@ -168,7 +203,7 @@ public class IFEAManager : MonoBehaviour
         if (target == null) { uiManager.HideTooltip(); return; }
         // 사용자가 실제로 선택한 제품만 UI-03에 표시하기 위해 대상 데이터를 읽는다.
         FinishData finish = target.GetCurrentFinish();
-        uiManager.ShowUI03Tooltip(finish, target.GetFinishType());
+        uiManager.ShowUITooltip(finish, target.GetFinishType());
     }
     // 실패 이유를 화면과 Console에 남겨 사용자가 연결 문제를 확인하도록 한다.
     public void ShowMessage(string message)
@@ -181,9 +216,17 @@ public class IFEAManager : MonoBehaviour
     // 값이 바뀐 시점에만 UI에 견적/분석/누락 안내를 갱신하도록 요청한다.
     private void RefreshUI()
     {
+        // UIManager가 AnalysisManager를 직접 참조하지 않도록 계산 결과를 중재해 전달한다.
+        uiManager.SetAnalysisResult(analysisManager.GetResult());
         uiManager.UpdateEstimate();
         uiManager.UpdateAnalysis();
         uiManager.ShowMessage(analysisManager.GetStatusMessage());
+    }
+    // Player가 bool의 의미를 추측하지 않고 현재 애플리케이션 상태로 입력 여부를 판단하게 한다.
+    private void SetState(IFEAState state)
+    {
+        currentState = state;
+        if (playerInteraction != null) { playerInteraction.SetState(state); }
     }
     // 네 담당 클래스가 연결되어야 전체 흐름을 실행할 수 있으므로 연결 여부를 반환한다.
     private bool HasRequiredReferences()

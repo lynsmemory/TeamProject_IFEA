@@ -399,12 +399,10 @@ public class AnalysisManager : MonoBehaviour
     public string GetSelectionLabel(FinishType type)
     {
         // 계산 대상이 없으면 선택 상태를 알 수 없으므로 기본 표기를 반환한다.
-        if (currentTargets == null) { return "Default"; }
-        // 같은 분류에서 처음 찾은 현재 표시 제품 이름을 비교하기 위해 보관한다.
+        if (currentTargets == null) { return "Not Selected"; }
+        // 같은 분류에서 처음 찾은 실제 선택 제품 이름을 비교하기 위해 보관한다.
         string displayedName = "";
-        // 사용자가 비교 제품이 아닌 다른 제품을 선택했는지 구분하기 위한 값이다.
-        bool hasSelectedProduct = false;
-        // 요청한 분류의 현재 표시 제품을 찾는다.
+        // 요청한 분류에서 사용자가 실제로 선택한 제품만 찾는다.
         foreach (FinishTarget target in currentTargets)
         {
             // Window Covering 카드는 Blind와 Curtain을 같은 분류로 찾아야 한다.
@@ -413,20 +411,27 @@ public class AnalysisManager : MonoBehaviour
             if (target == null || (!matchesWindowCovering && target.GetFinishType() != type)) { continue; }
             // 선택 이름을 읽기 위해 FinishTarget 클래스에서 현재 FinishData를 가져온다.
             FinishData finish = target.GetCurrentFinish();
-            // 추가 선택 제품이 있으면 결과에서 비교 상태와 선택 상태를 구분할 수 있도록 기록한다.
-            if (finish != null) { hasSelectedProduct = true; }
-            // 추가 선택이 없는 대상은 실제 계산에 사용하는 비교 제품 이름을 표시한다.
-            if (finish == null) { finish = target.GetComparisonFinish(); }
-            // 비교 제품 자료도 없으면 이름을 만들 수 없어 다음 대상을 확인한다.
+            // 선택하지 않은 대상의 비교 제품은 선택 결과 목록에 포함하지 않는다.
             if (finish == null) { continue; }
             // 같은 분류에 서로 다른 제품이 적용되면 한 제품명 대신 혼합 상태를 알린다.
             if (displayedName != "" && displayedName != finish.GetProductName()) { return "Multiple Products"; }
             displayedName = finish.GetProductName();
         }
-        // 표시할 제품 자료가 없으면 빈 문자열 대신 기본 상태를 표시한다.
-        if (displayedName == "") { return "Default"; }
-        // 추가 선택 전에는 해당 이름이 에너지 비교 기준 제품이라는 사실을 함께 표시한다.
-        if (!hasSelectedProduct) { return "Comparison, " + displayedName; }
+        // 실제 선택 제품이 없으면 비교 기준 제품과 구분되는 상태를 표시한다.
+        if (displayedName == "") { return "Not Selected"; }
         return displayedName;
+    }
+
+    // UIManager가 결과 화면에서 선택하지 않은 카테고리를 목록에서 제외하도록 실제 선택 여부를 반환한다.
+    public bool HasSelection(FinishType type)
+    {
+        if (currentTargets == null) { return false; }
+        foreach (FinishTarget target in currentTargets)
+        {
+            bool matchesWindowCovering = type == FinishType.WindowCovering && target != null && target.IsWindowCovering();
+            if (target == null || (!matchesWindowCovering && target.GetFinishType() != type)) { continue; }
+            if (target.GetCurrentFinish() != null) { return true; }
+        }
+        return false;
     }
 }

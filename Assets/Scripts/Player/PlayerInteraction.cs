@@ -117,22 +117,46 @@ public class PlayerInteraction : MonoBehaviour
     // 화면 중앙에서 가장 먼저 맞은 Collider의 FinishTarget을 찾아 툴팁에 전달한다.
     private void DetectTarget()
     {
-        // 이번 프레임에 발견한 마감 대상이다. 아무것도 맞지 않으면 null이다.
+        // 이번 프레임에 발견한 마감 대상이다.
         FinishTarget nextTarget = null;
-        // 화면 중앙 기준으로 정면 광선을 만드는 Camera 기능을 사용한다.
-        Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-        // Raycast가 맞은 Collider 정보를 받을 변수이다.
-        RaycastHit hit;
-        // 지정 거리/Layer 안의 가장 앞 Collider만 선택하여 벽 너머 선택을 막는다.
-        if (Physics.Raycast(ray, out hit, Mathf.Max(0f, interactionDistance), interactionMask))
+
+        // 화면 중앙 기준으로 정면 광선을 만든다.
+        Ray ray = playerCamera.ViewportPointToRay(
+            new Vector3(0.5f, 0.5f, 0f)
+        );
+
+        // 광선에 맞은 모든 Collider를 가져온다.
+        RaycastHit[] hits = Physics.RaycastAll(
+            ray,
+            Mathf.Max(0f, interactionDistance),
+            interactionMask
+        );
+
+        // 가까운 Collider부터 검사한다.
+        System.Array.Sort(
+            hits,
+            (left, right) => left.distance.CompareTo(right.distance)
+        );
+
+        // FinishTarget이 없는 충돌용 벽은 건너뛴다.
+        foreach (RaycastHit hit in hits)
         {
-            // Collider가 자식에 있어도 해당 부위의 선택 기능을 찾기 위해 부모까지 검색한다.
-            nextTarget = hit.collider.GetComponentInParent<FinishTarget>();
+            FinishTarget target =
+                hit.collider.GetComponentInParent<FinishTarget>();
+
+            if (target != null)
+            {
+                nextTarget = target;
+                break;
+            }
         }
-        // 같은 대상이면 UI를 다시 갱신하지 않아 불필요한 매 프레임 표시 작업을 줄인다.
+
+        // 같은 대상이면 UI를 다시 갱신하지 않는다.
         if (nextTarget == currentTarget) { return; }
+
         currentTarget = nextTarget;
-        // 전체 UI 흐름은 Manager가 담당하므로 탐지한 대상을 전달한다.
+
+        // 탐지한 대상을 UI 흐름에 전달한다.
         ifeaManager.ShowTarget(currentTarget);
     }
 

@@ -61,7 +61,7 @@ public class UIManager : MonoBehaviour
         SetPanel(resultUI, false);
         ShowMessage("");
     }
-    // finish의 이름, 비용, 선언 열저항과 사진을 표시한다. null이면 기본 상태를 안내한다.
+    // 실제 선택 제품의 이름, 비용, 선언 열저항과 사진을 표시한다. null이면 미선택 상태만 안내한다.
     public void ShowUI03Tooltip(FinishData finish, FinishType targetType)
     {
         SetPanel(tooltipUI, true);
@@ -74,11 +74,11 @@ public class UIManager : MonoBehaviour
         }
         // 통합 카테고리를 화면에서 공백이 있는 영어 이름으로 읽기 쉽게 표시한다.
         string category = targetType == FinishType.WindowCovering ? "Window Covering" : targetType.ToString();
-        // 기본 상태는 제품 데이터가 없어도 안내를 표시할 수 있게 처리한다.
+        // 미선택 상태에는 비교 제품의 가격과 열저항을 노출하지 않고 조작 안내만 표시한다.
         if (finish == null)
         {
-            SetText(tooltipText, category + "\nDefault\n" + controls);
-            // 이전 제품 사진이 기본 상태에 남지 않도록 숨긴다.
+            SetText(tooltipText, category + "\nNot Selected\n" + controls);
+            // 이전에 선택했던 제품 사진이 미선택 상태에 남지 않도록 숨긴다.
             if (productImage != null) { productImage.gameObject.SetActive(false); }
             return;
         }
@@ -236,24 +236,26 @@ public class UIManager : MonoBehaviour
         return roomName + "\n\nSelected Products\n" + selectedProducts
             + "\nComparison HVAC Use: " + analysisManager.GetBaselineAnnualEnergyUsage().ToString("N1") + " kWh/year"
             + "\nComparison HVAC Cost: " + analysisManager.GetBaselineAnnualEnergyCost().ToString("N2") + " " + GetCurrency() + "/year"
-            + "\nComparison products are labeled above."
+            + "\nComparison uses the first valid product in each category."
             + "\nVentilation excluded.";
     }
-    // UI-06에서 벽, 바닥, 천장과 창 가림의 현재 제품을 한 줄씩 표시한다.
+    // UI-06에서 실제로 선택한 제품만 한 줄씩 표시한다.
     private string GetResultProductText()
     {
-        // AnalysisManager 클래스를 통해 실제 룸 전체에 적용된 벽 제품 이름을 가져온다.
-        string wallProduct = analysisManager.GetSelectionLabel(FinishType.Wall);
-        // AnalysisManager 클래스를 통해 실제 룸 전체에 적용된 바닥 제품 이름을 가져온다.
-        string floorProduct = analysisManager.GetSelectionLabel(FinishType.Floor);
-        // AnalysisManager 클래스를 통해 실제 룸 전체에 적용된 천장 제품 이름을 가져온다.
-        string ceilingProduct = analysisManager.GetSelectionLabel(FinishType.Ceiling);
-        // AnalysisManager 클래스를 통해 각 창에 적용된 블라인드와 커튼 상태를 통합해서 가져온다.
-        string windowProduct = analysisManager.GetSelectionLabel(FinishType.WindowCovering);
-        return "Wall: " + wallProduct
-            + "\nFloor: " + floorProduct
-            + "\nCeiling: " + ceilingProduct
-            + "\nWindow Covering: " + windowProduct;
+        System.Collections.Generic.List<string> selections = new System.Collections.Generic.List<string>();
+        AddResultSelection(selections, "Wall", FinishType.Wall);
+        AddResultSelection(selections, "Floor", FinishType.Floor);
+        AddResultSelection(selections, "Ceiling", FinishType.Ceiling);
+        AddResultSelection(selections, "Window Covering", FinishType.WindowCovering);
+        if (selections.Count == 0) { return "No Selected Products"; }
+        return string.Join("\n", selections);
+    }
+
+    // 선택한 카테고리만 결과 목록에 추가하여 비교 기준 제품이 선택 제품처럼 보이지 않게 한다.
+    private void AddResultSelection(System.Collections.Generic.List<string> selections, string category, FinishType type)
+    {
+        if (!analysisManager.HasSelection(type)) { return; }
+        selections.Add(category + ": " + analysisManager.GetSelectionLabel(type));
     }
     // 패널이 아직 연결되지 않았어도 오류 없이 연결된 화면의 표시 상태만 바꾼다.
     private void SetPanel(GameObject panel, bool visible)

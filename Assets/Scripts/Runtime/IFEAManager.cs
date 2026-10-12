@@ -166,10 +166,8 @@ public class IFEAManager : MonoBehaviour
         if (uiManager == null) { return; }
         // 중앙에 마감 대상이 없으면 이전 제품 설명을 숨긴다.
         if (target == null) { uiManager.HideTooltip(); return; }
-        // 현재 제품 또는 기본 제품을 표시하기 위해 대상 데이터를 읽는다.
+        // 사용자가 실제로 선택한 제품만 UI-03에 표시하기 위해 대상 데이터를 읽는다.
         FinishData finish = target.GetCurrentFinish();
-        // 추가 선택이 없으면 기본 설명을 사용한다.
-        if (finish == null) { finish = target.GetDefaultFinish(); }
         uiManager.ShowUI03Tooltip(finish, target.GetFinishType());
     }
     // 실패 이유를 화면과 Console에 남겨 사용자가 연결 문제를 확인하도록 한다.

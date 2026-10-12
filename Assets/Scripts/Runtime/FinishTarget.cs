@@ -99,11 +99,19 @@ public class FinishTarget : MonoBehaviour
             statusMessage = name + ": No selectable FinishData.";
             return;
         }
+        // 기본 화면에는 비교 제품의 재질이 이미 적용되어 있으므로 첫 클릭은 그 다음 제품부터 시작한다.
+        int startIndex = currentIndex;
+        if (startIndex < 0)
+        {
+            FinishData comparisonFinish = GetComparisonFinish();
+            int comparisonIndex = finishList.IndexOf(comparisonFinish);
+            if (comparisonIndex >= 0) { startIndex = comparisonIndex; }
+        }
         // 목록을 한 바퀴만 검사하여 잘못된 제품 때문에 무한 반복하는 것을 막는다.
         for (int step = 1; step <= finishList.Count; step++)
         {
             // 이번 제품의 위치를 목록 크기 안에서 순환시키는 인덱스이다.
-            int nextIndex = (currentIndex + step) % finishList.Count;
+            int nextIndex = (startIndex + step) % finishList.Count;
             // 분류와 재질이 유효한지 확인하기 위해 해당 제품을 읽는다.
             FinishData finish = finishList[nextIndex];
             // 누락 제품/다른 종류/재질 미입력은 적용할 수 없어 다음 제품을 검사한다.

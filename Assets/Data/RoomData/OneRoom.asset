@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 879e7cea1adec1e46b16dfb2c920e746, type: 3}
+  m_Name: OneRoom
+  m_EditorClassIdentifier: 
+  roomId: OneRoom
+  roomName: "Studio"
+  roomType: 0
+  roomPrefab: {fileID: 5885675845120838709, guid: 2de9b7a3e8b1196458c2487adc8edef1, type: 3}
+  wallArea: 62.036156
+  floorArea: 35.2488
+  ceilingArea: 35.327998
+  windowArea: 7.332
+  volume: -1

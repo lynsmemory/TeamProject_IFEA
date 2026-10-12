@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc1061e861e9916439e9932c7e90149a, type: 3}
+  m_Name: WALL_AREA_SPC_XL
+  m_EditorClassIdentifier: 
+  productId: "WALL_AREA_SPC_XL"
+  productName: "Area SPC Wall Panel XL"
+  type: 0
+  productImage: {fileID: 21300000, guid: 75db00c0d63c003ac38b44d9e389fa19, type: 3}
+  unitPrice: 39.4
+  installationCost: 27.7
+  thermalResistance: 0.0311
+  thermalSource: "Docs/Testdata/ThermalDataCatalog.csv, 제조사 PDF 원본 대조 대기"
+  material: {fileID: 2100000, guid: 570ae728da1b7ff4b88772ac70459dd2, type: 2}
+  appearanceNote: "Base color preview, original texture unavailable."

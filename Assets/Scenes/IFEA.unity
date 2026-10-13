@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 85cf0b004bc4a654b9e501efcce47902, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -4641,7 +4641,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &3000000034
 RectTransform:
   m_ObjectHideFlags: 0
@@ -4681,7 +4681,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Reference images. The room model uses the linked prefab.
+  m_text: The room model uses the linked prefab.
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 9215f690c6530d445bc0b32d31fe02d7, type: 2}
   m_sharedMaterial: {fileID: 5845226785315619027, guid: 9215f690c6530d445bc0b32d31fe02d7, type: 2}

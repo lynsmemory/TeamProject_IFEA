@@ -21814,6 +21814,7 @@ GameObject:
   - component: {fileID: 9042293518649901708}
   - component: {fileID: 7833582428571476426}
   - component: {fileID: 9200000066}
+  - component: {fileID: 9400000080}
   m_Layer: 0
   m_Name: ThreeRoom_WestBalcony_Wall_East_West_B_To_BedroomSouthWest_Wallpaper
   m_TagString: Untagged
@@ -46787,8 +46788,8 @@ Transform:
   m_GameObject: {fileID: 7102059952782738156}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.6, y: 1.335, z: 3.6}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0.59358696, y: 1.335, z: 3.6}
+  m_LocalScale: {x: 0.87040816, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3113710565142207401}
@@ -55219,7 +55220,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &268172261956024007
 Transform:
   m_ObjectHideFlags: 0
@@ -61278,3 +61279,29 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: f2651b4dc23d6d343bde2f5b61b49351, type: 2}
+--- !u!114 &9400000080
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3254149815927838385}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7cda5c459420cf343aaff60d3263b2ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FinishTarget
+  type: 0
+  targetRenderer: {fileID: 7833582428571476426}
+  materialIndex: 0
+  area: 0
+  thermalArea: 0
+  isThermalSurface: 0
+  includeInEstimate: 0
+  windowId: 
+  defaultFinish: {fileID: 0}
+  finishList:
+  - {fileID: 11400000, guid: b97dc3ad767e4aadb318a0216b181e0a, type: 2}
+  - {fileID: 11400000, guid: 40ab9e2dbec64dd395cb097084a28a05, type: 2}
+  visualAnchor: {fileID: 0}
+  defaultVisual: {fileID: 0}
